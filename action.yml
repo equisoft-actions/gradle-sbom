@@ -1,0 +1,68 @@
+name: Run a gradle/junit task and upload test reports
+description: |
+  Run a gradle task expecting JUnit reports to be produced. The exported reports will follow naming conventions detailed
+  by our ADRs (https://confluence.equisoft.com/display/HRMI/ADR).
+
+  This actions will also annotate the PR or commit with the failed tests.
+
+inputs:
+  dependency-track-url:
+    description: URL to the Dependency Track instance to publish the SBOM to.
+    required: false
+  dependency-track-api-key:
+    description: API key of the Dependency Track instance.
+    required: false
+  dependency-track-project-name:
+    description: Project name for Dependency Track.
+    required: false
+  dependency-track-project-version:
+    description: Project name for Dependency Track. Typically the default branch unless multiple forks are maintained.
+    required: false
+    default: main
+  gradle-properties:
+    description: Content of a gradle.properties file that will be passed to the gradle runner.
+    required: false
+  gradle-project-path:
+    description: |
+      Gradle project path. For example: bff.
+      Defaults to the root project.
+    required: true
+    default: "."
+  report-retention-days:
+    description: Duration in days to preserve reports.
+    required: true
+    default: "5"
+  working-directory:
+    description: Relative path under $GITHUB_WORKSPACE where the root project is located.
+    required: false
+    default: "."
+
+runs:
+  using: composite
+  steps:
+    - name: Generate BOM
+      uses: burrunan/gradle-cache-action@v1.10
+      with:
+        gradle-version: wrapper
+        build-root-directory: ${{ inputs.working-directory }}
+        gradle-dependencies-cache-key: |
+          buildSrc/**/Dependencies.kt
+        arguments: -p ${{ inputs.gradle-project-path }}
+        properties: ${{ inputs.gradle-properties }}
+
+    - name: Upload BOM
+      uses: DependencyTrack/gh-upload-sbom@v1.0.0
+      if: inputs.dependency-track-url != ""
+      with:
+        serverhostname: ${{ inputs.dependency-track-url }}
+        apikey: ${{ inputs.dependency-track-api-key }}
+        projectname: ${{ inputs.dependency-track-project-name }}
+        projectversion: ${{ inputs.dependency-track-project-version }}
+
+    - name: Archive BOM
+      uses: actions/upload-artifact@v2
+      if: "!cancelled()"
+      with:
+        name: bom.json
+        retention-days: ${{ inputs.report-retention-days }}
+        path: ${{ inputs.working-directory }}/${{ inputs.gradle-project-path }}/build/reports/bom.json
