@@ -52,7 +52,7 @@ runs:
 
     - name: Upload BOM
       uses: DependencyTrack/gh-upload-sbom@v1.0.0
-      if: inputs.dependency-track-url != ""
+      if: inputs.dependency-track-url != ''
       with:
         serverhostname: ${{ inputs.dependency-track-url }}
         apikey: ${{ inputs.dependency-track-api-key }}
