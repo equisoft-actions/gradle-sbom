@@ -56,7 +56,7 @@ runs:
         build-root-directory: ${{ steps.context.outputs.working-directory }}
         gradle-dependencies-cache-key: |
           buildSrc/**/Dependencies.kt
-        arguments: -p ${{ inputs.gradle-project-path }}
+        arguments: -p ${{ inputs.gradle-project-path }} :cyclonedxBom
         properties: ${{ inputs.gradle-properties }}
 
     - name: Upload BOM
