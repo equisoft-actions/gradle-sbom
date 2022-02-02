@@ -40,11 +40,20 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Action context
+      shell: bash
+      id: context
+      run: |
+        working_directory=$(realpath ${{ inputs.working-directory }})
+        gradle_project_directory=$(realpath ${{ inputs.working-directory }}/${{ inputs.gradle-project-path }})
+        echo "::set-output name=working-directory::$working_directory"
+        echo "::set-output name=bom-path::$gradle_project_directory/build/reports/bom.json"
+
     - name: Generate BOM
       uses: burrunan/gradle-cache-action@v1.10
       with:
         gradle-version: wrapper
-        build-root-directory: ${{ inputs.working-directory }}
+        build-root-directory: ${{ steps.context.outputs.working-directory }}
         gradle-dependencies-cache-key: |
           buildSrc/**/Dependencies.kt
         arguments: -p ${{ inputs.gradle-project-path }}
@@ -54,10 +63,12 @@ runs:
       uses: DependencyTrack/gh-upload-sbom@v1.0.0
       if: inputs.dependency-track-url != ''
       with:
-        serverhostname: ${{ inputs.dependency-track-url }}
+        autocreate: false
         apikey: ${{ inputs.dependency-track-api-key }}
+        bomfilename: ${{ steps.context.outputs.bom-path }}
         projectname: ${{ inputs.dependency-track-project-name }}
         projectversion: ${{ inputs.dependency-track-project-version }}
+        serverhostname: ${{ inputs.dependency-track-url }}
 
     - name: Archive BOM
       uses: actions/upload-artifact@v2
@@ -65,4 +76,4 @@ runs:
       with:
         name: bom.json
         retention-days: ${{ inputs.report-retention-days }}
-        path: ${{ inputs.working-directory }}/${{ inputs.gradle-project-path }}/build/reports/bom.json
+        path: ${{ steps.context.outputs.bom-path }}
