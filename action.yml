@@ -1,9 +1,6 @@
 name: Run a gradle/junit task and upload test reports
 description: |
-  Run a gradle task expecting JUnit reports to be produced. The exported reports will follow naming conventions detailed
-  by our ADRs (https://confluence.equisoft.com/display/HRMI/ADR).
-
-  This actions will also annotate the PR or commit with the failed tests.
+  Utilizes CycloneDX to generate a SBOM. This SBOM will then be archived and uploaded to Dependency-Track.
 
 inputs:
   dependency-track-url:
