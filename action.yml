@@ -1,21 +1,8 @@
 name: Run a gradle/junit task and upload test reports
 description: |
-  Utilizes CycloneDX to generate a SBOM. This SBOM will then be archived and uploaded to Dependency-Track.
+  Utilizes CycloneDX to generate a SBOM. This SBOM will then be archived and uploaded to Github.
 
 inputs:
-  dependency-track-url:
-    description: URL to the Dependency Track instance to publish the SBOM to.
-    required: false
-  dependency-track-api-key:
-    description: API key of the Dependency Track instance.
-    required: false
-  dependency-track-project-name:
-    description: Project name for Dependency Track.
-    required: false
-  dependency-track-project-version:
-    description: Project name for Dependency Track. Typically the default branch unless multiple forks are maintained.
-    required: false
-    default: main
   gradle-properties:
     description: Content of a gradle.properties file that will be passed to the gradle runner.
     required: false
@@ -57,15 +44,9 @@ runs:
         properties: ${{ inputs.gradle-properties }}
 
     - name: Upload BOM
-      uses: DependencyTrack/gh-upload-sbom@v1.0.0
-      if: inputs.dependency-track-url != ''
+      uses: evryfs/sbom-dependency-submission-action@v0.0.1
       with:
-        autocreate: false
-        apikey: ${{ inputs.dependency-track-api-key }}
-        bomfilename: ${{ steps.context.outputs.bom-path }}
-        projectname: ${{ inputs.dependency-track-project-name }}
-        projectversion: ${{ inputs.dependency-track-project-version }}
-        serverhostname: ${{ inputs.dependency-track-url }}
+        sbom-files: ${{ steps.context.outputs.bom-path }}
 
     - name: Archive BOM
       uses: actions/upload-artifact@v3
