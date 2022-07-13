@@ -30,8 +30,9 @@ runs:
       run: |
         working_directory=$(realpath ${{ inputs.working-directory }})
         gradle_project_directory=$(realpath ${{ inputs.working-directory }}/${{ inputs.gradle-project-path }})
+        relative_project_directory=$(realpath --relative-to=$(pwd) ${{ inputs.working-directory }}/${{ inputs.gradle-project-path }})
         echo "::set-output name=working-directory::$working_directory"
-        echo "::set-output name=bom-path::$gradle_project_directory/build/reports/bom.json"
+        echo "::set-output name=bom-path::$relative_project_directory/build/reports/bom.json"
 
     - name: Generate BOM
       uses: burrunan/gradle-cache-action@v1.10
