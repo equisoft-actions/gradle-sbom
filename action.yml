@@ -12,6 +12,12 @@ inputs:
       Defaults to the root project.
     required: true
     default: "."
+  gradle-dependencies-cache-key:
+    description: Extra files to take into account for ~/.gradle/caches dependencies
+    required: true
+    default: |
+      buildSrc/**/Dependencies.kt
+      gradle/libs.versions.toml
   report-retention-days:
     description: Duration in days to preserve reports.
     required: true
@@ -34,12 +40,11 @@ runs:
         echo "::set-output name=bom-path::$gradle_project_directory/build/reports/bom.json"
 
     - name: Generate BOM
-      uses: burrunan/gradle-cache-action@v1.10
+      uses: burrunan/gradle-cache-action@v1
       with:
         gradle-version: wrapper
         build-root-directory: ${{ steps.context.outputs.working-directory }}
-        gradle-dependencies-cache-key: |
-          buildSrc/**/Dependencies.kt
+        gradle-dependencies-cache-key: ${{ inputs.gradle-dependencies-cache-key }}
         arguments: -p ${{ inputs.gradle-project-path }} :cyclonedxBom
         properties: ${{ inputs.gradle-properties }}
 
