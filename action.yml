@@ -49,7 +49,7 @@ runs:
         properties: ${{ inputs.gradle-properties }}
 
     - name: Upload BOM
-      uses: evryfs/sbom-dependency-submission-action@v0.0.6
+      uses: evryfs/sbom-dependency-submission-action@v0.0.9
       with:
         sbom-files: ${{ steps.context.outputs.bom-path }}
 
