@@ -1,27 +1,17 @@
-name: Run a gradle/junit task and upload test reports
-description: |
-  Utilizes CycloneDX to generate a SBOM. This SBOM will then be archived and uploaded to Github.
+name: Produce and upload a Gradle SBOM.
+description: Scan Gradle dependencies and uploads them using Github Submission API.
 
 inputs:
   gradle-properties:
     description: Content of a gradle.properties file that will be passed to the gradle runner.
     required: false
-  gradle-project-path:
-    description: |
-      Gradle project path. For example: bff.
-      Defaults to the root project.
+  gradle-build-module:
+    description: Modules for which to resolve dependencies. One per line. E.g. `:app`. Defaults to root `:`.
     required: true
-    default: "."
-  gradle-dependencies-cache-key:
-    description: Extra files to take into account for ~/.gradle/caches dependencies
-    required: true
-    default: |
-      buildSrc/**/Dependencies.kt
-      gradle/libs.versions.toml
-  report-retention-days:
-    description: Duration in days to preserve reports.
-    required: true
-    default: "5"
+    default: ":"
+  gradle-build-configuration:
+    description: The configuration used to retrieve dependencies from. `runtimeClasspath` is usually recommended. Defaults to everything.
+    required: false
   working-directory:
     description: Relative path under $GITHUB_WORKSPACE where the root project is located.
     required: false
@@ -31,32 +21,30 @@ runs:
   using: composite
   steps:
     - name: Action context
-      shell: bash
       id: context
+      shell: python
+      env:
+        MODULES: ${{ inputs.gradle-build-module }}
       run: |
-        working_directory=$(realpath ${{ inputs.working-directory }})
-        gradle_project_directory=$(realpath ${{ inputs.working-directory }}/${{ inputs.gradle-project-path }})
-        echo "working-directory=$working_directory" >> $GITHUB_OUTPUT
-        echo "bom-path=$gradle_project_directory/build/reports/bom.json" >> $GITHUB_OUTPUT
+        import os
+        modules = '_'.join(os.environ['MODULES'].splitlines())
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+          print(f'correlator=gradle-{modules}', file=fh)
 
-    - name: Generate BOM
-      uses: burrunan/gradle-cache-action@v1
-      with:
-        gradle-version: wrapper
-        build-root-directory: ${{ steps.context.outputs.working-directory }}
-        gradle-dependencies-cache-key: ${{ inputs.gradle-dependencies-cache-key }}
-        arguments: -p ${{ inputs.gradle-project-path }} :cyclonedxBom
-        properties: ${{ inputs.gradle-properties }}
+    - name: Configure gradle properties
+      shell: bash
+      run: |-
+        cat <<EOT >> ${{ inputs.working-directory }}/gradle.properties
+        ${{ inputs.gradle-properties }}
+        EOT
 
-    - name: Upload BOM
-      uses: evryfs/sbom-dependency-submission-action@v0.0.14
+    - name: Generate SBOM
+      uses: mikepenz/gradle-dependency-submission@v0.8.4
       with:
-        sbom-files: ${{ steps.context.outputs.bom-path }}
-
-    - name: Archive BOM
-      uses: actions/upload-artifact@v3
-      if: "!cancelled()"
-      with:
-        name: bom.json
-        retention-days: ${{ inputs.report-retention-days }}
-        path: ${{ steps.context.outputs.bom-path }}
+        correlator: ${{ steps.context.outputs.correlator }}
+        gradle-project-path: ${{ inputs.working-directory }}
+        gradle-build-module: ${{ inputs.gradle-build-module }}
+        gradle-build-configuration: ${{ inputs.gradle-build-configuration }}
+        include-build-environment: "false"
+        sub-module-mode: IGNORE
+        use-gradlew: "true"
