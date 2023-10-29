@@ -39,7 +39,7 @@ runs:
         EOT
 
     - name: Generate SBOM
-      uses: mikepenz/gradle-dependency-submission@v0.9.0
+      uses: mikepenz/gradle-dependency-submission@v0.9.1
       with:
         correlator: ${{ steps.context.outputs.correlator }}
         gradle-project-path: ${{ inputs.working-directory }}
