@@ -9,6 +9,10 @@ inputs:
     description: Modules for which to resolve dependencies. One per line. E.g. `:app`. Defaults to root `:`.
     required: true
     default: ":"
+  gradle-modules-auto-detect:
+    description: Whether to automatically detect submodules and include them in the SBOM generation. Defaults to false.
+    required: false
+    default: "false"
   gradle-build-configuration:
     description: The configuration used to retrieve dependencies from. `runtimeClasspath` is usually recommended. Defaults to everything.
     required: false
@@ -38,12 +42,28 @@ runs:
         ${{ inputs.gradle-properties }}
         EOT
 
+    - name: List Gradle modules
+      id: gradle-modules
+      shell: bash
+      run: |
+        if [[ "${{ inputs.gradle-modules-auto-detect }}" == "true" ]]; then
+          cd ${{ inputs.working-directory }}
+          MODULES=$(./gradlew -q projects --console=plain | grep "^project ':" | sed "s/project ':\([^']*\)'.*/:\1/")
+        else
+          MODULES="${{ inputs.gradle-build-module }}"
+        fi
+        {
+          echo "modules<<EOF"
+          echo "$MODULES"
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
+
     - name: Generate SBOM
       uses: mikepenz/gradle-dependency-submission@v1.0.0
       with:
         correlator: ${{ steps.context.outputs.correlator }}
         gradle-project-path: ${{ inputs.working-directory }}
-        gradle-build-module: ${{ inputs.gradle-build-module }}
+        gradle-build-module: ${{ steps.gradle-modules.outputs.modules }}
         gradle-build-configuration: ${{ inputs.gradle-build-configuration }}
         include-build-environment: "false"
         sub-module-mode: IGNORE
