@@ -6,15 +6,18 @@ inputs:
     description: Content of a gradle.properties file that will be passed to the gradle runner.
     required: false
   gradle-build-module:
-    description: Modules for which to resolve dependencies. One per line. E.g. `:app`. Defaults to root `:`.
-    required: true
+    deprecationMessage: This input is deprecated and ignored with no replacement.
+    description: Deprecated (ignored). Previously used to select modules to resolve.
+    required: false
     default: ":"
   gradle-modules-auto-detect:
-    description: Whether to automatically detect submodules and include them in the SBOM generation. Defaults to false.
+    deprecationMessage: This input is deprecated and ignored with no replacement.
+    description: Deprecated (ignored). Previously used to auto-detect submodules.
     required: false
     default: "false"
   gradle-build-configuration:
-    description: The configuration used to retrieve dependencies from. `runtimeClasspath` is usually recommended. Defaults to everything.
+    deprecationMessage: This input is deprecated and ignored with no replacement.
+    description: Deprecated (ignored). Previously used to select the configuration for dependency resolution.
     required: false
   working-directory:
     description: Relative path under $GITHUB_WORKSPACE where the root project is located.
@@ -24,17 +27,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Action context
-      id: context
-      shell: python
-      env:
-        MODULES: ${{ inputs.gradle-build-module }}
-      run: |
-        import os
-        modules = '_'.join(os.environ['MODULES'].splitlines())
-        with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
-          print(f'correlator=gradle-{modules}', file=fh)
-
     - name: Configure gradle properties
       shell: bash
       run: |-
@@ -42,29 +34,9 @@ runs:
         ${{ inputs.gradle-properties }}
         EOT
 
-    - name: List Gradle modules
-      id: gradle-modules
-      shell: bash
-      run: |
-        if [[ "${{ inputs.gradle-modules-auto-detect }}" == "true" ]]; then
-          cd ${{ inputs.working-directory }}
-          MODULES=$(./gradlew -q projects --console=plain | grep "^project ':" | sed "s/project ':\([^']*\)'.*/:\1/")
-        else
-          MODULES="${{ inputs.gradle-build-module }}"
-        fi
-        {
-          echo "modules<<EOF"
-          echo "$MODULES"
-          echo "EOF"
-        } >> "$GITHUB_OUTPUT"
-
-    - name: Generate SBOM
-      uses: mikepenz/gradle-dependency-submission@f9bd3bb4b3b348357f775517814f954ded2badd1 # v1.0.0
+    - name: Generate and submit dependency graph
+      uses: gradle/actions/dependency-submission@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
       with:
-        correlator: ${{ steps.context.outputs.correlator }}
-        gradle-project-path: ${{ inputs.working-directory }}
-        gradle-build-module: ${{ steps.gradle-modules.outputs.modules }}
-        gradle-build-configuration: ${{ inputs.gradle-build-configuration }}
-        include-build-environment: "false"
-        sub-module-mode: IGNORE
-        use-gradlew: "true"
+        build-root-directory: ${{ inputs.working-directory }}
+        cache-provider: basic
+        dependency-graph: generate-and-submit
