@@ -6,18 +6,18 @@ inputs:
     description: Content of a gradle.properties file that will be passed to the gradle runner.
     required: false
   gradle-build-module:
-    deprecationMessage: This input is deprecated with no replacement.
-    description: Modules for which to resolve dependencies. One per line. E.g. `:app`. Defaults to root `:`.
-    required: true
+    deprecationMessage: This input is deprecated and ignored with no replacement.
+    description: Deprecated (ignored). Previously used to select modules to resolve.
+    required: false
     default: ":"
   gradle-modules-auto-detect:
-    deprecationMessage: This input is deprecated with no replacement.
-    description: Whether to automatically detect submodules and include them in the SBOM generation. Defaults to false.
+    deprecationMessage: This input is deprecated and ignored with no replacement.
+    description: Deprecated (ignored). Previously used to auto-detect submodules.
     required: false
     default: "false"
   gradle-build-configuration:
-    deprecationMessage: This input is deprecated with no replacement.
-    description: The configuration used to retrieve dependencies from. `runtimeClasspath` is usually recommended. Defaults to everything.
+    deprecationMessage: This input is deprecated and ignored with no replacement.
+    description: Deprecated (ignored). Previously used to select the configuration for dependency resolution.
     required: false
   working-directory:
     description: Relative path under $GITHUB_WORKSPACE where the root project is located.
@@ -35,7 +35,7 @@ runs:
         EOT
 
     - name: Generate and submit dependency graph
-      uses: gradle/actions/dependency-submission@v6
+      uses: gradle/actions/dependency-submission@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
       with:
         build-root-directory: ${{ inputs.working-directory }}
         cache-provider: basic
